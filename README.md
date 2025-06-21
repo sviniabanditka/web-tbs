@@ -1,6 +1,6 @@
-# ⚡ Zero-Config Web Template
+# ⚡ Web Turn-Based Strategy
 
-A modern full-stack boilerplate with **Laravel 11**, **Vue 3**, **Docker**, and **WebSockets** — everything preconfigured to get you started fast.
+A modern full-stack web turn-based strategy with **Laravel 11**, **Vue 3**, **Docker**, and **WebSockets** — everything preconfigured to get you started fast.
 
 ## 🏗️ Tech Stack
 
@@ -12,6 +12,7 @@ A modern full-stack boilerplate with **Laravel 11**, **Vue 3**, **Docker**, and 
 | **Cache**          | Redis (queues, pub/sub)                     |
 | **Web Server**     | Nginx                                       |
 | **Infrastructure** | Docker, Makefile                            |
+| **Mail**           | Mailpit                                     |
 
 ## 📁 Project Structure
 
@@ -51,6 +52,7 @@ Access the app:
 
 * Frontend: [http://localhost:8000](http://localhost:8000)
 * API Ping: [http://localhost:8000/api/ping](http://localhost:8000/api/ping)
+* Mail Web Interface: [http://localhost:8025](http://localhost:8025)
 
 ## 🛠️ Make Commands
 
@@ -89,6 +91,7 @@ Access the app:
 | `postgres` | PostgreSQL 15 with JSONB support         | 5432 |
 | `redis`    | Redis for queues and pub/sub             | 6379 |
 | `nginx`    | Reverse proxy for frontend/backend       | 8000 |
+| `mailpit`  | Local Mail SMTP Server                   | 8025/1025 |
 
 ## ❗ Troubleshooting
 
