@@ -1,0 +1,38 @@
+# Backend
+/backend/vendor
+/backend/node_modules
+/backend/public/hot
+/backend/public/storage
+/backend/storage/*.key
+/backend/storage/logs/*
+/backend/storage/framework/cache/*
+/backend/storage/framework/sessions/*
+/backend/storage/framework/views/*
+/backend/.env
+/backend/.env.backup
+/backend/.phpunit.result.cache
+/backend/docker-compose.override.yml
+/backend/Homestead.json
+/backend/Homestead.yaml
+/backend/npm-debug.log
+/backend/yarn-error.log
+
+# Frontend
+/frontend/node_modules
+/frontend/dist
+/frontend/.env
+/frontend/.env.local
+/frontend/.env.*.local
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db 

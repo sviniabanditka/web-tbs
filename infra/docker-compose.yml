@@ -1,0 +1,72 @@
+services:
+
+  # Backend
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../infra/docker/backend/Dockerfile
+    volumes:
+      - ../backend:/var/www/html
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8080:8080"
+    networks:
+      - test_network
+
+  # Nginx
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8000:80"
+    volumes:
+      - ../backend:/var/www/html
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+    networks:
+      - test_network
+
+  # PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - test_network
+
+  # Redis
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - test_network
+
+  # Frontend
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../infra/docker/frontend/Dockerfile
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    networks:
+      - test_network
+
+networks:
+  test_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data: 
