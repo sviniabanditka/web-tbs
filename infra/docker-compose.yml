@@ -60,6 +60,17 @@ services:
     volumes:
       - ../frontend:/app
       - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    networks:
+      - test_network
+
+  #Mail
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"   # SMTP port
+      - "8025:8025"   # Web interface
     networks:
       - test_network
 

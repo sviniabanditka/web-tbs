@@ -9,6 +9,9 @@ logs:
 migrate:
 	docker compose -f infra/docker-compose.yml exec backend php artisan migrate
 
+migrate-fresh:
+	docker compose -f infra/docker-compose.yml exec backend php artisan migrate:fresh
+
 down:
 	docker compose -f infra/docker-compose.yml down
 

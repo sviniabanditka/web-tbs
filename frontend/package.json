@@ -10,10 +10,12 @@
   },
   "dependencies": {
     "@vueuse/core": "^13.3.0",
+    "axios": "^1.10.0",
     "laravel-echo": "^2.1.5",
     "pinia": "^3.0.3",
     "pusher-js": "^8.4.0",
-    "vue": "^3.4.15"
+    "vue": "^3.4.15",
+    "vue-router": "^4.5.1"
   },
   "devDependencies": {
     "@types/node": "^20.11.19",
