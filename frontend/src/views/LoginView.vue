@@ -1,7 +1,8 @@
 <template>
     <div class="bg-white/95 rounded-2xl shadow-2xl p-8 flex flex-col items-center">
       <h1 class="text-3xl font-extrabold text-gray-900 mb-2 tracking-tight">Sign In</h1>
-      <p class="mb-6 text-gray-500 text-sm">Enter your email to receive a login code</p>
+      <p v-if="step === 'email'" class="mb-6 text-gray-500 text-sm">Enter your email to receive a login code</p>
+      <p v-else class="mb-6 text-gray-500 text-sm">Enter code from email</p>
   
       <form v-if="step === 'email'" @submit.prevent="sendCode" class="w-full flex flex-col gap-4">
         <input
