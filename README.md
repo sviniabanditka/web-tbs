@@ -2,6 +2,10 @@
 
 A modern full-stack web turn-based strategy with **Laravel 11**, **Vue 3**, **Docker**, and **WebSockets** — everything preconfigured to get you started fast.
 
+## 📝 Documentation
+
+For detailed information, please refer to the [documentation](docs/0_CONTENT.md).
+
 ## 🏗️ Tech Stack
 
 | Layer              | Technology                                  |
