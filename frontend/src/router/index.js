@@ -19,6 +19,11 @@ const routes = [
     name: 'game',
     component: () => import('@/views/GameView.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/map',
+    name: 'map',
+    component: () => import('@/views/MapView.vue')
   }
 ]
 

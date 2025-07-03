@@ -4,11 +4,15 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\GameActionController;
+use App\Http\Controllers\MapGenerationController;
 
 Route::get('ping', fn() => response()->json(['message' => 'pong']));
 
 Route::post('send-login-code', [AuthController::class, 'sendLoginCode']);
 Route::post('login-with-code', [AuthController::class, 'loginWithCode']);
+
+Route::get('/map', [MapGenerationController::class, 'generate']);
+
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user', [AuthController::class, 'getUser']);

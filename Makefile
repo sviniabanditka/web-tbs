@@ -1,5 +1,7 @@
 .PHONY: dev logs migrate down build
 
+setup: env build dev install migrate-fresh 
+
 dev:
 	docker compose -f infra/docker-compose.yml up -d
 

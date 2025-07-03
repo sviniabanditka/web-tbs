@@ -2,7 +2,7 @@
   <aside class="w-72 bg-gray-100 p-6 flex flex-col h-full">
     <div class="flex-grow">
       <div class="flex flex-col items-center mb-6">
-        <img :src="user?.avatar || 'https://picsum.photos/200/200'" alt="Avatar" class="w-20 h-20 rounded-full mb-2 border-4 border-blue-500 shadow" />
+        <img :src="user?.avatar || avatarSrc" alt="Avatar" class="w-20 h-20 rounded-full mb-2 border-4 border-blue-500 shadow" />
         <div class="font-semibold text-lg text-gray-800">{{ user?.username }}</div>
       </div>
       <hr class="border-gray-300 mb-6" />
@@ -26,6 +26,8 @@
 </template>
 
 <script setup>
+import avatarSrc from '@/assets/img/avatar_placeholder.png'
+
 defineProps({
   user: {
     type: Object,
