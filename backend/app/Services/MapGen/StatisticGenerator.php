@@ -4,9 +4,6 @@ namespace App\Services\MapGen;
 
 class StatisticGenerator
 {
-    /**
-     * Calculate map statistics
-     */
     public function calculateMapStatistics(array $map): array
     {
         $stats = [
@@ -17,25 +14,22 @@ class StatisticGenerator
             'bridges' => 0
         ];
 
-        // Initialize counters
         $biomeCount = [];
         $resourceCount = [];
         $passableCount = 0;
         $bridgeCount = 0;
 
-        // Calculate statistics for each tile
         foreach ($map as $tile) {
-            // Total number of tiles
             $stats['total_cells']++;
 
-            // Count biomes
+            // Подсчет биомов
             $biome = $tile->biome;
             if (!isset($biomeCount[$biome])) {
                 $biomeCount[$biome] = 0;
             }
             $biomeCount[$biome]++;
 
-            // Count resources
+            // Подсчет ресурсов
             if ($tile->resource !== null) {
                 $resource = $tile->resource;
                 if (!isset($resourceCount[$resource])) {
@@ -44,28 +38,293 @@ class StatisticGenerator
                 $resourceCount[$resource]++;
             }
 
-            // Count passable tiles
             if ($tile->isPassable()) {
                 $passableCount++;
             }
 
-            // Count bridges
             if ($tile->isBridge) {
                 $bridgeCount++;
             }
         }
 
-        // Sort results for consistency
         ksort($biomeCount);
         ksort($resourceCount);
 
-        // Fill in the final statistics
         $stats['biomes'] = $biomeCount;
         $stats['resources'] = $resourceCount;
         $stats['passable_cells'] = $passableCount;
         $stats['bridges'] = $bridgeCount;
 
         return $stats;
+    }
+
+    /**
+     * Анализ соответствия конфигурации ресурсов
+     */
+    public function analyzeResourceConfiguration(array $map, array $config): array
+    {
+        $stats = $this->calculateMapStatistics($map);
+        $totalCells = $stats['total_cells'];
+
+        $analysis = [
+            'resource_distribution' => [],
+            'abundance_analysis' => [],
+            'biome_availability' => [],
+            'overall_efficiency' => 0
+        ];
+
+        $resourceConfig = $config['resources'];
+        $abundance = $resourceConfig['abundance'] ?? 0.5;
+        $scarcitySettings = $resourceConfig['scarcity'] ?? [];
+        $rules = $resourceConfig['rules'] ?? [];
+
+        // Анализ каждого ресурса
+        foreach ($rules as $resource => $allowedBiomes) {
+            $actualCount = $stats['resources'][$resource] ?? 0;
+            $scarcity = $scarcitySettings[$resource] ?? 0.5;
+
+            // Подсчет доступных тайлов для этого ресурса
+            $availableTiles = $this->countAvailableTilesForResource($map, $allowedBiomes);
+
+            // Ожидаемое количество на основе формулы
+            $expectedDensity = $abundance * 0.3 * $scarcity;
+            $expectedCount = (int)round($availableTiles * $expectedDensity);
+
+            $efficiency = $availableTiles > 0 ? ($actualCount / $availableTiles) : 0;
+
+            $analysis['resource_distribution'][$resource] = [
+                'actual_count' => $actualCount,
+                'expected_count' => $expectedCount,
+                'available_tiles' => $availableTiles,
+                'efficiency' => round($efficiency * 100, 2),
+                'scarcity_setting' => $scarcity,
+                'density_achieved' => round(($actualCount / $totalCells) * 100, 2)
+            ];
+        }
+
+        // Общий анализ abundance
+        $totalResourcesPlaced = array_sum($stats['resources']);
+        $totalResourcesExpected = $this->calculateExpectedTotalResources($map, $resourceConfig);
+
+        $analysis['abundance_analysis'] = [
+            'setting' => $abundance,
+            'total_resources_placed' => $totalResourcesPlaced,
+            'total_resources_expected' => $totalResourcesExpected,
+            'abundance_efficiency' => $totalResourcesExpected > 0 ?
+                round(($totalResourcesPlaced / $totalResourcesExpected) * 100, 2) : 0,
+            'overall_density' => round(($totalResourcesPlaced / $totalCells) * 100, 2)
+        ];
+
+        // Анализ доступности биомов
+        foreach ($rules as $resource => $allowedBiomes) {
+            $biomeStats = [];
+            foreach ($allowedBiomes as $biome) {
+                $biomeCount = $stats['biomes'][$biome] ?? 0;
+                $biomeStats[$biome] = $biomeCount;
+            }
+
+            $analysis['biome_availability'][$resource] = [
+                'allowed_biomes' => $allowedBiomes,
+                'biome_counts' => $biomeStats,
+                'total_suitable_tiles' => array_sum($biomeStats)
+            ];
+        }
+
+        // Общая эффективность конфигурации
+        $efficiencyScores = array_column($analysis['resource_distribution'], 'efficiency');
+        $analysis['overall_efficiency'] = !empty($efficiencyScores) ?
+            round(array_sum($efficiencyScores) / count($efficiencyScores), 2) : 0;
+
+        return $analysis;
+    }
+
+    /**
+     * Подсчет ожидаемого общего количества ресурсов
+     */
+    private function calculateExpectedTotalResources(array $map, array $resourceConfig): int
+    {
+        $abundance = $resourceConfig['abundance'] ?? 0.5;
+        $scarcitySettings = $resourceConfig['scarcity'] ?? [];
+        $rules = $resourceConfig['rules'] ?? [];
+
+        $totalExpected = 0;
+
+        foreach ($rules as $resource => $allowedBiomes) {
+            $availableTiles = $this->countAvailableTilesForResource($map, $allowedBiomes);
+            $scarcity = $scarcitySettings[$resource] ?? 0.5;
+
+            $expectedDensity = $abundance * 0.3 * $scarcity;
+            $expectedCount = (int)round($availableTiles * $expectedDensity);
+
+            $totalExpected += $expectedCount;
+        }
+
+        return $totalExpected;
+    }
+
+    /**
+     * Подсчет доступных тайлов для конкретного ресурса
+     */
+    private function countAvailableTilesForResource(array $map, array $allowedBiomes): int
+    {
+        $count = 0;
+
+        foreach ($map as $tile) {
+            if (in_array($tile->biome, $allowedBiomes) && $tile->isPassable()) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Новая валидация конфигурации ресурсов
+     */
+    public function validateResourceConfiguration(array $config): array
+    {
+        $validation = [
+            'valid' => true,
+            'errors' => [],
+            'warnings' => []
+        ];
+
+        $resourceConfig = $config['resources'] ?? [];
+
+        // Проверка abundance
+        if (!isset($resourceConfig['abundance'])) {
+            $validation['errors'][] = 'Missing abundance parameter';
+            $validation['valid'] = false;
+        } else {
+            $abundance = $resourceConfig['abundance'];
+            if (!is_numeric($abundance) || $abundance < 0.1 || $abundance > 1.0) {
+                $validation['errors'][] = 'Abundance must be between 0.1 and 1.0';
+                $validation['valid'] = false;
+            }
+        }
+
+        // Проверка scarcity
+        if (!isset($resourceConfig['scarcity']) || !is_array($resourceConfig['scarcity'])) {
+            $validation['errors'][] = 'Missing or invalid scarcity configuration';
+            $validation['valid'] = false;
+        } else {
+            foreach ($resourceConfig['scarcity'] as $resource => $scarcity) {
+                if (!is_numeric($scarcity) || $scarcity < 0.1 || $scarcity > 1.0) {
+                    $validation['errors'][] = "Scarcity for '$resource' must be between 0.1 and 1.0";
+                    $validation['valid'] = false;
+                }
+            }
+        }
+
+        // Проверка rules
+        if (!isset($resourceConfig['rules']) || !is_array($resourceConfig['rules'])) {
+            $validation['errors'][] = 'Missing or invalid rules configuration';
+            $validation['valid'] = false;
+        } else {
+            $validBiomes = ['grass', 'forest', 'mountain', 'tundra', 'desert', 'water'];
+
+            foreach ($resourceConfig['rules'] as $resource => $allowedBiomes) {
+                if (!is_array($allowedBiomes) || empty($allowedBiomes)) {
+                    $validation['errors'][] = "Rules for '$resource' must be a non-empty array";
+                    $validation['valid'] = false;
+                }
+
+                foreach ($allowedBiomes as $biome) {
+                    if (!in_array($biome, $validBiomes)) {
+                        $validation['errors'][] = "Invalid biome '$biome' for resource '$resource'";
+                        $validation['valid'] = false;
+                    }
+                }
+            }
+        }
+
+        // Проверка соответствия между scarcity и rules
+        $scarcityResources = array_keys($resourceConfig['scarcity'] ?? []);
+        $rulesResources = array_keys($resourceConfig['rules'] ?? []);
+
+        $missingInRules = array_diff($scarcityResources, $rulesResources);
+        $missingInScarcity = array_diff($rulesResources, $scarcityResources);
+
+        if (!empty($missingInRules)) {
+            $validation['warnings'][] = 'Resources in scarcity but not in rules: ' . implode(', ', $missingInRules);
+        }
+
+        if (!empty($missingInScarcity)) {
+            $validation['warnings'][] = 'Resources in rules but not in scarcity: ' . implode(', ', $missingInScarcity);
+        }
+
+        return $validation;
+    }
+
+    /**
+     * Рекомендации по улучшению конфигурации ресурсов
+     */
+    public function getResourceConfigurationRecommendations(array $map, array $config): array
+    {
+        $analysis = $this->analyzeResourceConfiguration($map, $config);
+        $recommendations = [];
+
+        // Рекомендации по abundance
+        $abundanceEfficiency = $analysis['abundance_analysis']['abundance_efficiency'];
+
+        if ($abundanceEfficiency < 70) {
+            $recommendations[] = [
+                'type' => 'abundance',
+                'message' => 'Consider increasing abundance parameter for more resources on map',
+                'current_value' => $config['resources']['abundance'],
+                'suggested_value' => min(1.0, $config['resources']['abundance'] + 0.2)
+            ];
+        } elseif ($abundanceEfficiency > 130) {
+            $recommendations[] = [
+                'type' => 'abundance',
+                'message' => 'Consider decreasing abundance parameter - too many resources',
+                'current_value' => $config['resources']['abundance'],
+                'suggested_value' => max(0.1, $config['resources']['abundance'] - 0.2)
+            ];
+        }
+
+        // Рекомендации по scarcity отдельных ресурсов
+        foreach ($analysis['resource_distribution'] as $resource => $data) {
+            if ($data['efficiency'] < 50) {
+                $recommendations[] = [
+                    'type' => 'scarcity',
+                    'resource' => $resource,
+                    'message' => "Resource '$resource' appears too rarely - consider increasing scarcity",
+                    'current_value' => $data['scarcity_setting'],
+                    'suggested_value' => min(1.0, $data['scarcity_setting'] + 0.2)
+                ];
+            }
+
+            if ($data['available_tiles'] < 5) {
+                $recommendations[] = [
+                    'type' => 'biome_availability',
+                    'resource' => $resource,
+                    'message' => "Resource '$resource' has very few suitable tiles - consider adding more allowed biomes",
+                    'available_tiles' => $data['available_tiles']
+                ];
+            }
+        }
+
+        return $recommendations;
+    }
+
+    /**
+     * Полный отчет о карте и конфигурации
+     */
+    public function generateMapReport(array $map, array $config): array
+    {
+        return [
+            'basic_statistics' => $this->calculateMapStatistics($map),
+            'biome_analysis' => $this->calculateBiomePercentages($map),
+            'resource_analysis' => $this->analyzeResourceConfiguration($map, $config),
+            'config_validation' => $this->validateResourceConfiguration($config),
+            'recommendations' => $this->getResourceConfigurationRecommendations($map, $config),
+            'generation_summary' => [
+                'total_cells' => count($map),
+                'biome_size_impact' => 'Not tracked in this version',
+                'connectivity_status' => 'Connected via bridges: ' . $this->calculateMapStatistics($map)['bridges']
+            ]
+        ];
     }
 
     /**

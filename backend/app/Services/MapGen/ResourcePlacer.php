@@ -1,32 +1,61 @@
 <?php
 
 namespace App\Services\MapGen;
-/**
- * Places resources on the map according to rules and limits
- */
+
 class ResourcePlacer
 {
+    private float $abundance;
+    private array $scarcity;
     private array $rules;
-    private array $limits;
-    private array $coefficients;
+    private int $resourceSeed;
 
+    /**
+     * @param array $resourceConfig
+     *   [
+     *     'abundance' => float,       // от 0.1 до 1.0
+     *     'scarcity' => [             // 0.1 = очень редкий, 1.0 = частый
+     *       'food'  => float,
+     *       'wood'  => float,
+     *       'stone' => float,
+     *       'iron'  => float,
+     *       'gold'  => float,
+     *     ],
+     *     'rules' => [                // в каких биомах может появляться ресурс
+     *       'food'  => ['grass','forest'],
+     *       'wood'  => ['forest','tundra'],
+     *       'stone' => ['mountain'],
+     *       'iron'  => ['mountain'],
+     *       'gold'  => ['mountain'],
+     *     ]
+     *   ]
+     */
     public function __construct(array $resourceConfig)
     {
-        $this->rules = $resourceConfig['rules'];
-        $this->limits = $resourceConfig['limits'];
-        $this->coefficients = $resourceConfig['coefficients'];
+        $this->abundance = $resourceConfig['abundance'] ?? 0.5;
+        $this->scarcity = $resourceConfig['scarcity'] ?? [];
+        $this->rules    = $resourceConfig['rules']   ?? [];
     }
 
     /**
-     * Placement of all resources on the map
+     * Размещает ресурсы детерминированно на основе seed и конфига.
+     *
+     * @param array  $map        Ассоциативный массив HexTile, ключ = "q,r"
+     * @param string $seedString Строковый seed
+     * @return array Модифицированный $map с ресурсами
      */
     public function placeResources(array $map, string $seedString): array
     {
-        $resourceSeed = crc32($seedString . '_resources');
-        mt_srand($resourceSeed);
+        // Генерируем единый seed для всех ресурсов
+        $this->resourceSeed = crc32($seedString . '_resources');
 
         foreach ($this->rules as $resource => $allowedBiomes) {
-            $count = $this->calculateResourceCount($resource);
+            // Подсчитать, сколько тайлов подходит под этот ресурс
+            $validTiles = $this->countValidTiles($map, $allowedBiomes);
+
+            // Вычислить точное количество по формуле: validTiles × abundance × scarcity
+            $count = $this->calculateResourceCount($resource, $validTiles);
+
+            // Разместить ровно $count ресурсов на случайные, но детерминированные позиции
             $map = $this->distributeResource($map, $resource, $allowedBiomes, $count);
         }
 
@@ -34,78 +63,88 @@ class ResourcePlacer
     }
 
     /**
-     * Calculation of the number of resources to place
+     * Считает число тайлов, подходящих для данного ресурса.
      */
-    private function calculateResourceCount(string $resource): int
+    private function countValidTiles(array $map, array $allowedBiomes): int
     {
-        $min = $this->limits[$resource]['min'];
-        $max = $this->limits[$resource]['max'];
-        $coefficient = $this->coefficients[$resource];
-
-        $range = $max - $min;
-        $baseCount = $min + ($range * $coefficient);
-
-        // Add a small randomness (±10%)
-        $randomFactor = 0.9 + (mt_rand() / mt_getrandmax()) * 0.2;
-
-        return (int)round($baseCount * $randomFactor);
+        $count = 0;
+        foreach ($map as $tile) {
+            if (
+                in_array($tile->biome, $allowedBiomes, true) &&
+                $tile->isPassable() &&
+                $tile->resource === null
+            ) {
+                $count++;
+            }
+        }
+        return $count;
     }
 
     /**
-     * Placement of a specific resource
+     * Вычисляет целевое число ресурсов без вариаций.
      */
-    private function distributeResource(array $map, string $resource, array $allowedBiomes, int $count): array
+    private function calculateResourceCount(string $resource, int $validTiles): int
     {
-        $validPositions = $this->findValidPositions($map, $allowedBiomes);
+        $scarcity = $this->scarcity[$resource] ?? 0.0;
+        return (int) round($validTiles * $this->abundance * $scarcity);
+    }
 
-        if (empty($validPositions)) {
+    /**
+     * Размещает ровно $count ресурсов типа $resource.
+     */
+    private function distributeResource(
+        array $map,
+        string $resource,
+        array $allowedBiomes,
+        int $count
+    ): array {
+        // Собираем все доступные координаты
+        $positions = $this->findValidPositions($map, $allowedBiomes);
+        if ($count <= 0 || empty($positions)) {
             return $map;
         }
 
-        // Deterministic shuffling of positions
-        $this->deterministicShuffle($validPositions);
+        // Детерминированно перемешиваем список позиций
+        $this->seededShuffle($positions, crc32($resource . '_' . $this->resourceSeed));
 
-        $placedCount = 0;
-        foreach ($validPositions as $position) {
-            if ($placedCount >= $count) {
-                break;
-            }
+        // Берем первые $count элементов
+        $selected = array_slice($positions, 0, min($count, count($positions)));
 
-            $key = "{$position->q},{$position->r}";
-            if (isset($map[$key]) && $map[$key]->resource === null) {
-                $map[$key]->setResource($resource);
-                $placedCount++;
-            }
+        // Устанавливаем ресурс на выбранные тайлы
+        foreach ($selected as $pos) {
+            $key = "{$pos->q},{$pos->r}";
+            $map[$key]->setResource($resource);
         }
 
         return $map;
     }
 
     /**
-     * Search for valid positions for the resource
+     * Возвращает массив HexCoordinate для всех подходящих тайлов.
      */
     private function findValidPositions(array $map, array $allowedBiomes): array
     {
-        $validPositions = [];
-
+        $valid = [];
         foreach ($map as $tile) {
-            if (in_array($tile->biome, $allowedBiomes) &&
+            if (
+                in_array($tile->biome, $allowedBiomes, true) &&
                 $tile->isPassable() &&
-                $tile->resource === null) {
-                $validPositions[] = $tile->coordinate;
+                $tile->resource === null
+            ) {
+                $valid[] = $tile->coordinate;
             }
         }
-
-        return $validPositions;
+        return $valid;
     }
 
     /**
-     * Deterministic shuffling of an array
+     * Fisher–Yates shuffle с детерминированным seed.
      */
-    private function deterministicShuffle(array &$array): void
+    private function seededShuffle(array &$array, int $seed): void
     {
-        $size = count($array);
-        for ($i = $size - 1; $i > 0; $i--) {
+        mt_srand($seed);
+        $n = count($array);
+        for ($i = $n - 1; $i > 0; $i--) {
             $j = mt_rand(0, $i);
             [$array[$i], $array[$j]] = [$array[$j], $array[$i]];
         }

@@ -9,16 +9,30 @@
     >
         <svg class="hex-map-svg" :viewBox="`0 0 ${width} ${height}`">
             <g :transform="`translate(${pan.x} ${pan.y}) scale(${zoom})`">
-                <polygon
-                    v-for="hex in mapStore.mapData"
-                    :key="`${hex.coordinate.q}-${hex.coordinate.r}`"
-                    :points="getHexPoints(hex.coordinate.q, hex.coordinate.r)"
-                    :fill="getHexColor(hex.biome)"
-                    stroke="black"
-                    stroke-width="0.2"
-                >
-                  <title>{{ getHexTooltip(hex) }}</title>
-                </polygon>
+                <g v-for="hex in mapStore.mapData" :key="`${hex.coordinate.q}-${hex.coordinate.r}`">
+                    <polygon
+                        :points="getHexPoints(hex.coordinate.q, hex.coordinate.r)"
+                        :fill="getHexColor(hex.biome)"
+                        stroke="black"
+                        stroke-width="0.2"
+                    >
+                      <title>{{ getHexTooltip(hex) }}</title>
+                    </polygon>
+                    <g v-if="hex.resource && getResourceIcons(hex.resource).length > 0">
+                        <g v-for="(icon, idx) in getResourceIcons(hex.resource)" :key="idx">
+                            <text
+                                :x="getHexCenter(hex.coordinate.q, hex.coordinate.r).x"
+                                :y="getHexCenter(hex.coordinate.q, hex.coordinate.r).y + idx * 18 - (getResourceIcons(hex.resource).length-1)*9"
+                                text-anchor="middle"
+                                alignment-baseline="middle"
+                                font-size="18"
+                                class="resource-icon"
+                            >
+                                {{ icon }}
+                            </text>
+                        </g>
+                    </g>
+                </g>
             </g>
         </svg>
     </div>
@@ -63,14 +77,14 @@ function getHexPoints(q, r) {
 }
 
 const biomeColors = {
-    'ocean': '#005f73',
-    'water': '#457b9d',
-    'grass': '#90a955',
-    'forest': '#31572c',
-    'mountain': '#6c757d',
-    'desert': '#f4a261',
-    'tundra': '#e0f2f1',
-    'ice': '#ffffff',
+    'ocean': '#4fc3f7',      // светло-голубой для океана
+    'water': '#1976d2',      // более насыщенно-синий
+    'grass': '#90a955',      // оставить
+    'forest': '#388e3c',     // насыщенно-зелёный, чтобы не сливаться с травой
+    'mountain': '#6c757d',   // оставить
+    'desert': '#ffe082',     // ярко-жёлтый, более естественный
+    'tundra': '#20551b',     // чуть темнее, чем было
+    'ice': '#ffffff',        // оставить
     'default': '#cccccc'
 };
 
@@ -155,6 +169,25 @@ function getHexTooltip(hex) {
     }
     return `q: ${hex.coordinate.q}, r: ${hex.coordinate.r}\nBiome: ${hex.biome}\nResource: ${res}`;
 }
+
+// Returns an array of resource icons for a hex resource
+function getResourceIcons(resource) {
+    const iconMap = {
+        food: '🍎',
+        wood: '🌲',
+        stone: '🪨',
+        iron: '⛓️',
+        gold: '🪙',
+    };
+    if (!resource) return [];
+    if (typeof resource === 'string') {
+        return [iconMap[resource] || '❓'];
+    }
+    if (typeof resource === 'object' && !Array.isArray(resource)) {
+        return Object.keys(resource).map(key => iconMap[key] || '❓');
+    }
+    return [];
+}
 </script>
 
 <style scoped>
@@ -177,5 +210,9 @@ polygon {
 }
 polygon:hover {
     fill: #ffc107;
+}
+.resource-icon {
+    pointer-events: none;
+    user-select: none;
 }
 </style> 
