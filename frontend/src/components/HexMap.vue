@@ -48,14 +48,14 @@ const hexWidth = computed(() => Math.sqrt(3) * hexSize.value);
 const hexHeight = computed(() => 2 * hexSize.value);
 
 const biomeColors = {
-    'ocean': '#4fc3f7',      // светло-голубой для океана
-    'water': '#1976d2',      // более насыщенно-синий
-    'grass': '#90a955',      // оставить
-    'forest': '#388e3c',     // насыщенно-зелёный, чтобы не сливаться с травой
-    'mountain': '#6c757d',   // оставить
-    'desert': '#ffe082',     // ярко-жёлтый, более естественный
-    'tundra': '#20551b',     // чуть темнее, чем было
-    'ice': '#ffffff',        // оставить
+    'ocean': '#4fc3f7',      // light blue for ocean
+    'water': '#1976d2',      // more saturated blue
+    'grass': '#90a955',      // keep
+    'forest': '#388e3c',     // saturated green, to not blend with grass
+    'mountain': '#6c757d',   // keep
+    'desert': '#ffe082',     // bright yellow, more natural
+    'tundra': '#20551b',     // slightly darker than before
+    'ice': '#ffffff',        // keep
     'default': '#cccccc'
 };
 
@@ -131,7 +131,7 @@ function getHexTooltipResource(hex) {
 function setCanvasSize() {
     const canvas = canvasRef.value;
     if (!canvas) return;
-    // Устанавливаем внутренний размер с учетом devicePixelRatio
+    // Set internal size with consideration of devicePixelRatio
     canvas.width = props.width * devicePixelRatio;
     canvas.height = props.height * devicePixelRatio;
     canvas.style.width = props.width + 'px';
@@ -151,16 +151,16 @@ function render() {
     ctx.scale(props.zoom, props.zoom);
 
     // --- Viewport culling ---
-    // 1. Вычисляем мировые границы видимой области
+    // 1. Calculate world boundaries of visible area
     const viewLeft = (-props.pan.x - props.width / 2) / props.zoom;
     const viewTop = (-props.pan.y - props.height / 2) / props.zoom;
     const viewRight = viewLeft + props.width / props.zoom;
     const viewBottom = viewTop + props.height / props.zoom;
 
-    // 2. Для каждого гекса проверяем попадание в viewport
+    // 2. For each hex check if it's in viewport
     for (const hex of mapStore.mapData) {
         const center = getHexCenter(hex.coordinate.q, hex.coordinate.r);
-        // Bounding box гекса
+        // Bounding box of hex
         const minX = center.x - hexSize.value;
         const maxX = center.x + hexSize.value;
         const minY = center.y - hexSize.value;
@@ -169,7 +169,7 @@ function render() {
             maxX < viewLeft || minX > viewRight ||
             maxY < viewTop || minY > viewBottom
         ) {
-            continue; // гекс вне экрана
+            continue; // hex outside screen
         }
         const isHovered = hoveredHex.value &&
             hex.coordinate.q === hoveredHex.value.coordinate.q &&
@@ -202,8 +202,8 @@ function drawHex(ctx, q, r, biome, resource, isHovered) {
         const icons = getResourceIcons(resource);
         if (icons.length > 0) {
             ctx.save();
-            // Размер шрифта теперь зависит от zoom (уменьшается при отдалении)
-            const fontSize = Math.max(18 * props.zoom, 10); // 18 базовый, но уменьшается при zoom < 1
+            // Font size now depends on zoom (decreases with distance)
+            const fontSize = Math.max(18 * props.zoom, 10); // 18 base, but decreases with zoom < 1
             ctx.font = `${fontSize}px sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -221,13 +221,13 @@ function drawHex(ctx, q, r, biome, resource, isHovered) {
 }
 
 function getHexAtCanvasPos(x, y) {
-    // Преобразуем координаты мыши в мировые координаты
+    // Convert mouse coordinates to world coordinates
     const worldX = (x - props.pan.x - props.width / 2) / props.zoom;
     const worldY = (y - props.pan.y - props.height / 2) / props.zoom;
-    // Обратная формула для axial координат
+    // Reverse formula for axial coordinates
     const q = (Math.sqrt(3)/3 * worldX - 1/3 * worldY) / hexSize.value;
     const r = (2/3 * worldY) / hexSize.value;
-    // Округляем до ближайшего гекса
+    // Round to nearest hex
     return hexRound(q, r);
 }
 
@@ -295,15 +295,15 @@ function handleMouseUp() {
 function handleWheel(event) {
     const scaleAmount = 0.1;
     const scale = event.deltaY > 0 ? 1 - scaleAmount : 1 + scaleAmount;
-    // Центрируем зум относительно мыши
+    // Center zoom relative to mouse
     const rect = canvasRef.value.getBoundingClientRect();
     const mouseX = event.clientX - rect.left;
     const mouseY = event.clientY - rect.top;
     const worldX = (mouseX - props.pan.x - props.width / 2) / props.zoom;
     const worldY = (mouseY - props.pan.y - props.height / 2) / props.zoom;
     let newZoom = props.zoom * scale;
-    newZoom = Math.max(newZoom, 0.4); // ограничение минимального зума
-    // Корректируем pan так, чтобы зум был относительно курсора
+    newZoom = Math.max(newZoom, 0.4); // limit minimum zoom
+    // Correct pan so that zoom is relative to cursor
     const newPan = {
         x: mouseX - worldX * newZoom - props.width / 2,
         y: mouseY - worldY * newZoom - props.height / 2

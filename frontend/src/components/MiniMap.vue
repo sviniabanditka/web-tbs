@@ -27,9 +27,9 @@ const miniMapDataUrl = ref('');
 const frameCanvas = ref(null);
 const isDragging = ref(false);
 
-// --- Генерация миникарты ---
+// --- Generate mini map ---
 function getMapBounds(mapData, hexSize) {
-  // Получаем реальные мировые границы карты
+  // Get real world boundaries of the map
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (const hex of mapData) {
     const { x, y } = getHexCenter(hex.coordinate.q, hex.coordinate.r, hexSize);
@@ -52,9 +52,9 @@ function renderMiniMap() {
   const bounds = getMapBounds(props.mapData, props.hexSize);
   const mapW = bounds.maxX - bounds.minX;
   const mapH = bounds.maxY - bounds.minY;
-  // Масштаб, чтобы вся карта влезла в MINI_SIZE
+  // Scale to fit the entire map into MINI_SIZE
   const scale = Math.min(MINI_SIZE / mapW, MINI_SIZE / mapH);
-  // Смещение, чтобы карта была по центру миникарты
+  // Offset to center the map in the mini map
   const offsetX = (MINI_SIZE - mapW * scale) / 2 - bounds.minX * scale;
   const offsetY = (MINI_SIZE - mapH * scale) / 2 - bounds.minY * scale;
 
@@ -67,7 +67,7 @@ function renderMiniMap() {
     const { x, y } = getHexCenter(hex.coordinate.q, hex.coordinate.r, props.hexSize);
     drawMiniHex(ctx, x * scale + offsetX, y * scale + offsetY, props.hexSize * scale, getHexColor(hex.biome));
   }
-  // Сохраняем параметры для рамки и клика
+  // Save parameters for frame and click
   lastMiniMapParams.value = { scale, offsetX, offsetY, bounds };
   miniMapDataUrl.value = canvas.toDataURL();
 }
@@ -115,7 +115,7 @@ function getHexColor(biome) {
   return biomeColors.default;
 }
 
-// --- Рисуем рамку видимой области ---
+// --- Draw frame of visible area ---
 function drawFrame() {
   const canvas = frameCanvas.value;
   if (!canvas) return;
@@ -123,12 +123,12 @@ function drawFrame() {
   ctx.clearRect(0, 0, MINI_SIZE, MINI_SIZE);
   const { scale, offsetX, offsetY } = lastMiniMapParams.value;
   if (!scale) return;
-  // 1. Видимая область в мировых координатах
+  // 1. Visible area in world coordinates
   const viewLeft = (-props.pan.x - props.width / 2) / props.zoom;
   const viewTop = (-props.pan.y - props.height / 2) / props.zoom;
   const viewRight = viewLeft + props.width / props.zoom;
   const viewBottom = viewTop + props.height / props.zoom;
-  // 2. Переводим эти координаты в миникарту
+  // 2. Translate these coordinates to mini map
   const miniLeft = viewLeft * scale + offsetX;
   const miniTop = viewTop * scale + offsetY;
   const miniRight = viewRight * scale + offsetX;
@@ -153,7 +153,7 @@ function handleMiniMapClick(event) {
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
   const { scale, offsetX, offsetY } = lastMiniMapParams.value;
-  // Перевести координаты x, y миникарты в мировые координаты центра
+  // Translate coordinates x, y of mini map to world coordinates of the center
   const worldX = (x - offsetX) / scale;
   const worldY = (y - offsetY) / scale;
   emit('center-on-coord', { worldX, worldY });
