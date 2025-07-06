@@ -1,124 +1,50 @@
 <template>
     <div>
-        <div class="controls" :class="{ 'controls-narrow': currentTab === 'General' }">
-            <div class="tabs">
-                <button
-                    v-for="tab in tabs"
-                    :key="tab"
-                    :class="['tab-btn', { active: currentTab === tab }]"
-                    @click="currentTab = tab"
-                >
-                    {{ tab }}
-                </button>
-            </div>
-            <div v-if="currentTab === 'General'">
-                <div class="flex items-center gap-2 mb-2">
-                    <label for="seed" class="w-28 whitespace-nowrap text-gray-700 font-medium">
-                        Seed:
-                    </label>
-                    <input
-                        id="seed"
-                        type="text"
-                        v-model="seed"
-                        class="flex-1 px-2 py-1 border rounded"
-                    />
-                </div>
-                <div class="flex items-center gap-2 mb-2">
-                    <label for="radius" class="w-28 whitespace-nowrap text-gray-700 font-medium">
-                        Radius:
-                    </label>
-                    <input
-                        id="radius"
-                        type="number"
-                        v-model.number="radius"
-                        min="10"
-                        max="100"
-                        step="5"
-                        class="flex-1 px-2 py-1 border rounded text-right"
-                    />
-                </div>
-                <div class="flex items-center gap-2 mb-2">
-                    <label for="biome-size" class="w-28 whitespace-nowrap text-gray-700 font-medium">
-                        Biome size:
-                    </label>
-                    <input
-                        id="biome-size"
-                        type="number"
-                        v-model.number="biomeSize"
-                        min="0.1"
-                        max="1.0"
-                        step="0.1"
-                        class="flex-1 px-2 py-1 border rounded text-right"
-                    />
-                </div>
-                <div class="flex items-center gap-2 mb-2">
-                    <label for="abundance" class="w-28 whitespace-nowrap text-gray-700 font-medium">
-                        Resources count:
-                    </label>
-                    <input
-                        id="abundance"
-                        type="number"
-                        v-model.number="abundance"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        class="flex-1 px-2 py-1 border rounded text-right"
-                    />
-                </div>
-            </div>
-            <div v-else-if="currentTab === 'Biomes'">
-                <div v-for="biome in biomesList" :key="biome" class="flex items-center gap-2 mb-2">
-                    <label :for="'biome-' + biome" class="w-28 whitespace-nowrap text-gray-700 font-medium">
-                        {{ capitalize(biome) }}:
-                    </label>
-                    <input
-                        :id="'biome-' + biome"
-                        type="number"
-                        v-model.number="biomes[biome]"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        class="flex-1 px-2 py-1 border rounded text-right"
-                    />
-                </div>
-            </div>
-            <div v-else-if="currentTab === 'Resources'">
-                <div v-for="resource in resources" :key="resource" class="flex items-center gap-2 mb-2">
-                    <label :for="'resource-' + resource" class="w-28 whitespace-nowrap text-gray-700 font-medium">
-                        {{ capitalize(resource) }}:
-                    </label>
-                    <input
-                        :id="'resource-' + resource"
-                        type="number"
-                        v-model.number="scarcity[resource]"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        class="flex-1 px-2 py-1 border rounded text-right"
-                    />
-                </div>
-            </div>
-            <div class="flex">
-                <button class="control-btn main-btn" @click="randomSeed">Random Seed</button>
-                <button class="control-btn main-btn" @click="loadMap" :disabled="mapStore.loading">
-                    {{ mapStore.loading ? 'Loading...' : 'Load Map' }}
-                </button>
-            </div>
-        </div>
+        <MapControlsPanel
+            v-model:seed="seed"
+            v-model:radius="radius"
+            v-model:biomeSize="biomeSize"
+            v-model:abundance="abundance"
+            v-model:scarcity="scarcity"
+            v-model:biomes="biomes"
+            :resources="resources"
+            :biomes-list="biomesList"
+            :map-store="mapStore"
+            @random-seed="randomSeed"
+            @load-map="loadMap"
+        />
         <div v-if="mapStore.error" class="error-message">
             {{ mapStore.error }}
         </div>
         <MapInfoPanel v-if="mapStore.stats" />
-        <HexMap v-if="mapStore.mapData && mapStore.mapData.length > 0" />
+        <HexMap v-if="mapStore.mapData && mapStore.mapData.length > 0"
+                v-model:pan="pan"
+                v-model:zoom="zoom"
+                :width="width"
+                :height="height"
+                :hex-size="hexSize"
+        />
+        <MiniMap
+            v-if="mapStore.mapData && mapStore.mapData.length > 0"
+            :map-data="mapStore.mapData"
+            :pan="pan"
+            :zoom="zoom"
+            :width="width"
+            :height="height"
+            :hex-size="hexSize"
+            @center-on-coord="handleMiniMapCenter"
+        />
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, shallowRef } from 'vue';
 import HexMap from '@/components/HexMap.vue';
 import MapInfoPanel from '@/components/MapInfoPanel.vue';
+import MapControlsPanel from '@/components/MapControlsPanel.vue';
 import { useMapStore } from '@/stores/map';
 import { capitalize } from 'vue';
+import MiniMap from '@/components/MiniMap.vue';
 
 const mapStore = useMapStore();
 const seed = ref(randomString());
@@ -143,8 +69,12 @@ const biomes = ref({
     water: 0.2,
 });
 
-const tabs = ['General', 'Biomes', 'Resources'];
-const currentTab = ref('General');
+// Для управления pan/zoom из MapView
+const pan = ref({ x: 0, y: 0 });
+const zoom = ref(1);
+const width = ref(window.innerWidth);
+const height = ref(window.innerHeight);
+const hexSize = ref(50); // тот же, что в HexMap
 
 function randomString(length = 12) {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -170,6 +100,18 @@ function loadMap() {
         { ...biomes.value }
     );
 }
+
+// Функция для центрирования карты по клику на миникарте
+function handleMiniMapCenter({ worldX, worldY }) {
+    // worldX, worldY — мировые координаты точки, куда кликнули на миникарте
+    // Нужно выставить pan так, чтобы эта точка оказалась в центре экрана
+    const viewWidth = width.value / zoom.value;
+    const viewHeight = height.value / zoom.value;
+    pan.value = {
+        x: -(worldX + viewWidth / 2) * zoom.value + width.value / 2,
+        y: -(worldY + viewHeight / 2) * zoom.value + height.value / 2
+    };
+}
 </script>
 
 <style scoped>
@@ -187,10 +129,6 @@ function loadMap() {
     align-items: stretch;
     min-width: 320px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-}
-.controls-narrow {
-    padding-left: 10px;
-    padding-right: 10px;
 }
 .tabs {
     display: flex;

@@ -162,7 +162,7 @@ const tab = ref('basic');
   background: rgba(255, 255, 255, 0.97);
   padding: 15px;
   border-radius: 8px;
-  width: 480px;
+  width: 300px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   font-family: sans-serif;
   font-size: 14px;

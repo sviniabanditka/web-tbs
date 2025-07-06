@@ -7,74 +7,45 @@
         @mouseup="handleMouseUp"
         @mouseleave="handleMouseUp"
     >
-        <svg class="hex-map-svg" :viewBox="`0 0 ${width} ${height}`">
-            <g :transform="`translate(${pan.x} ${pan.y}) scale(${zoom})`">
-                <g v-for="hex in mapStore.mapData" :key="`${hex.coordinate.q}-${hex.coordinate.r}`">
-                    <polygon
-                        :points="getHexPoints(hex.coordinate.q, hex.coordinate.r)"
-                        :fill="getHexColor(hex.biome)"
-                        stroke="black"
-                        stroke-width="0.2"
-                    >
-                      <title>{{ getHexTooltip(hex) }}</title>
-                    </polygon>
-                    <g v-if="hex.resource && getResourceIcons(hex.resource).length > 0">
-                        <g v-for="(icon, idx) in getResourceIcons(hex.resource)" :key="idx">
-                            <text
-                                :x="getHexCenter(hex.coordinate.q, hex.coordinate.r).x"
-                                :y="getHexCenter(hex.coordinate.q, hex.coordinate.r).y + idx * 18 - (getResourceIcons(hex.resource).length-1)*9"
-                                text-anchor="middle"
-                                alignment-baseline="middle"
-                                font-size="18"
-                                class="resource-icon"
-                            >
-                                {{ icon }}
-                            </text>
-                        </g>
-                    </g>
-                </g>
-            </g>
-        </svg>
+        <canvas ref="canvasRef"
+                :width="width"
+                :height="height"
+                class="hex-map-canvas"></canvas>
+        <div v-if="hoveredHex"
+             class="hex-tooltip"
+             :style="tooltipStyle">
+            <div>q: {{ hoveredHex.coordinate.q }}, r: {{ hoveredHex.coordinate.r }}</div>
+            <div>Biome: {{ hoveredHex.biome }}</div>
+            <div>Resource: {{ getHexTooltipResource(hoveredHex) }}</div>
+        </div>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { useMapStore } from '@/stores/map';
 
 const mapStore = useMapStore();
 
-const width = ref(window.innerWidth);
-const height = ref(window.innerHeight);
-const pan = ref({ x: 0, y: 0 });
-const zoom = ref(1);
+const props = defineProps({
+  pan: { type: Object, required: true },
+  zoom: { type: Number, required: true },
+  width: { type: Number, required: true },
+  height: { type: Number, required: true },
+  hexSize: { type: Number, default: 50 }
+});
+
+const emit = defineEmits(['update:pan', 'update:zoom']);
+
 const isPanning = ref(false);
 const lastMousePosition = ref({ x: 0, y: 0 });
+const hoveredHex = ref(null);
+const mousePos = ref({ x: 0, y: 0 });
+const canvasRef = ref(null);
 
-const hexSize = 50;
-const hexWidth = Math.sqrt(3) * hexSize;
-const hexHeight = 2 * hexSize;
-
-// Returns the center coordinates of a hex based on q, r
-function getHexCenter(q, r) {
-    const x = hexSize * (Math.sqrt(3) * q  +  Math.sqrt(3)/2 * r) + width.value / 2 - hexWidth;
-    const y = hexSize * (3./2. * r) + height.value / 2 - hexHeight;
-    return { x, y };
-}
-
-// Returns the points string for the SVG polygon of a hex
-function getHexPoints(q, r) {
-    const center = getHexCenter(q, r);
-    let points = [];
-    for (let i = 0; i < 6; i++) {
-        const angle_deg = 60 * i - 30;
-        const angle_rad = Math.PI / 180 * angle_deg;
-        points.push(
-            `${center.x + hexSize * Math.cos(angle_rad)},${center.y + hexSize * Math.sin(angle_rad)}`
-        );
-    }
-    return points.join(' ');
-}
+const hexSize = computed(() => props.hexSize);
+const hexWidth = computed(() => Math.sqrt(3) * hexSize.value);
+const hexHeight = computed(() => 2 * hexSize.value);
 
 const biomeColors = {
     'ocean': '#4fc3f7',      // светло-голубой для океана
@@ -87,6 +58,38 @@ const biomeColors = {
     'ice': '#ffffff',        // оставить
     'default': '#cccccc'
 };
+
+const iconMap = {
+    food: '🍎',
+    wood: '🌲',
+    stone: '🪨',
+    iron: '⛓️',
+    gold: '🪙',
+};
+
+const devicePixelRatio = window.devicePixelRatio || 1;
+
+// Returns the center coordinates of a hex based on q, r
+function getHexCenter(q, r) {
+    const x = hexSize.value * (Math.sqrt(3) * q  +  Math.sqrt(3)/2 * r);
+    const y = hexSize.value * (3./2. * r);
+    return { x, y };
+}
+
+// Returns the points string for the SVG polygon of a hex
+function getHexPoints(q, r) {
+    const center = getHexCenter(q, r);
+    let points = [];
+    for (let i = 0; i < 6; i++) {
+        const angle_deg = 60 * i - 30;
+        const angle_rad = Math.PI / 180 * angle_deg;
+        points.push({
+            x: center.x + hexSize.value * Math.cos(angle_rad),
+            y: center.y + hexSize.value * Math.sin(angle_rad)
+        });
+    }
+    return points;
+}
 
 // Returns the color for a given biome
 function getHexColor(biome) {
@@ -102,52 +105,7 @@ function getHexColor(biome) {
     return biomeColors.default;
 }
 
-function handleMouseDown(event) {
-    isPanning.value = true;
-    lastMousePosition.value = { x: event.clientX, y: event.clientY };
-}
-
-function handleMouseMove(event) {
-    if (!isPanning.value) return;
-    const dx = event.clientX - lastMousePosition.value.x;
-    const dy = event.clientY - lastMousePosition.value.y;
-    pan.value.x += dx;
-    pan.value.y += dy;
-    lastMousePosition.value = { x: event.clientX, y: event.clientY };
-}
-
-function handleMouseUp() {
-    isPanning.value = false;
-}
-
-function handleWheel(event) {
-    const scaleAmount = 0.1;
-    const scale = event.deltaY > 0 ? 1 - scaleAmount : 1 + scaleAmount;
-
-    // Calculate the world coordinates for zoom centering
-    const worldX = (event.clientX - pan.value.x) / zoom.value;
-    const worldY = (event.clientY - pan.value.y) / zoom.value;
-
-    pan.value.x = event.clientX - worldX * zoom.value * scale;
-    pan.value.y = event.clientY - worldY * zoom.value * scale;
-    zoom.value *= scale;
-}
-
-function updateDimensions() {
-    width.value = window.innerWidth;
-    height.value = window.innerHeight;
-}
-
-onMounted(() => {
-    window.addEventListener('resize', updateDimensions);
-});
-
-onUnmounted(() => {
-    window.removeEventListener('resize', updateDimensions);
-});
-
-// Returns the tooltip string for a hex, including resources
-function getHexTooltip(hex) {
+function getHexTooltipResource(hex) {
     let res = '';
     if (hex.resource === null) {
         res = 'none';
@@ -167,18 +125,233 @@ function getHexTooltip(hex) {
     } else {
         res = 'none';
     }
-    return `q: ${hex.coordinate.q}, r: ${hex.coordinate.r}\nBiome: ${hex.biome}\nResource: ${res}`;
+    return res;
 }
+
+function setCanvasSize() {
+    const canvas = canvasRef.value;
+    if (!canvas) return;
+    // Устанавливаем внутренний размер с учетом devicePixelRatio
+    canvas.width = props.width * devicePixelRatio;
+    canvas.height = props.height * devicePixelRatio;
+    canvas.style.width = props.width + 'px';
+    canvas.style.height = props.height + 'px';
+}
+
+function render() {
+    const canvas = canvasRef.value;
+    if (!canvas) return;
+    setCanvasSize();
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+    ctx.clearRect(0, 0, props.width, props.height);
+    ctx.save();
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    ctx.translate(props.pan.x + props.width / 2, props.pan.y + props.height / 2);
+    ctx.scale(props.zoom, props.zoom);
+
+    // --- Viewport culling ---
+    // 1. Вычисляем мировые границы видимой области
+    const viewLeft = (-props.pan.x - props.width / 2) / props.zoom;
+    const viewTop = (-props.pan.y - props.height / 2) / props.zoom;
+    const viewRight = viewLeft + props.width / props.zoom;
+    const viewBottom = viewTop + props.height / props.zoom;
+
+    // 2. Для каждого гекса проверяем попадание в viewport
+    for (const hex of mapStore.mapData) {
+        const center = getHexCenter(hex.coordinate.q, hex.coordinate.r);
+        // Bounding box гекса
+        const minX = center.x - hexSize.value;
+        const maxX = center.x + hexSize.value;
+        const minY = center.y - hexSize.value;
+        const maxY = center.y + hexSize.value;
+        if (
+            maxX < viewLeft || minX > viewRight ||
+            maxY < viewTop || minY > viewBottom
+        ) {
+            continue; // гекс вне экрана
+        }
+        const isHovered = hoveredHex.value &&
+            hex.coordinate.q === hoveredHex.value.coordinate.q &&
+            hex.coordinate.r === hoveredHex.value.coordinate.r;
+        drawHex(ctx, hex.coordinate.q, hex.coordinate.r, hex.biome, hex.resource, isHovered);
+    }
+    ctx.restore();
+}
+
+function drawHex(ctx, q, r, biome, resource, isHovered) {
+    const points = getHexPoints(q, r);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = getHexColor(biome);
+    ctx.globalAlpha = isHovered ? 0.7 : 1.0;
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = Math.max(0.8 / props.zoom, 0.5);
+    ctx.stroke();
+    ctx.restore();
+
+    // Draw resource icons
+    if (props.zoom > 0.7) {
+        const icons = getResourceIcons(resource);
+        if (icons.length > 0) {
+            ctx.save();
+            // Размер шрифта теперь зависит от zoom (уменьшается при отдалении)
+            const fontSize = Math.max(18 * props.zoom, 10); // 18 базовый, но уменьшается при zoom < 1
+            ctx.font = `${fontSize}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const center = getHexCenter(q, r);
+            for (let i = 0; i < icons.length; i++) {
+                ctx.fillText(
+                    icons[i],
+                    center.x,
+                    center.y + i * fontSize - (icons.length - 1) * fontSize / 2
+                );
+            }
+            ctx.restore();
+        }
+    }
+}
+
+function getHexAtCanvasPos(x, y) {
+    // Преобразуем координаты мыши в мировые координаты
+    const worldX = (x - props.pan.x - props.width / 2) / props.zoom;
+    const worldY = (y - props.pan.y - props.height / 2) / props.zoom;
+    // Обратная формула для axial координат
+    const q = (Math.sqrt(3)/3 * worldX - 1/3 * worldY) / hexSize.value;
+    const r = (2/3 * worldY) / hexSize.value;
+    // Округляем до ближайшего гекса
+    return hexRound(q, r);
+}
+
+function hexRound(q, r) {
+    // axial -> cube
+    let x = q;
+    let z = r;
+    let y = -x - z;
+    let rx = Math.round(x);
+    let ry = Math.round(y);
+    let rz = Math.round(z);
+    const x_diff = Math.abs(rx - x);
+    const y_diff = Math.abs(ry - y);
+    const z_diff = Math.abs(rz - z);
+    if (x_diff > y_diff && x_diff > z_diff) {
+        rx = -ry - rz;
+    } else if (y_diff > z_diff) {
+        ry = -rx - rz;
+    } else {
+        rz = -rx - ry;
+    }
+    return { q: rx, r: rz };
+}
+
+function findHex(q, r) {
+    return mapStore.mapData.find(hex => hex.coordinate.q === q && hex.coordinate.r === r);
+}
+
+function handleMouseDown(event) {
+    isPanning.value = true;
+    lastMousePosition.value = { x: event.clientX, y: event.clientY };
+}
+
+function handleMouseMove(event) {
+    mousePos.value = { x: event.clientX, y: event.clientY };
+    if (isPanning.value) {
+        const dx = event.clientX - lastMousePosition.value.x;
+        const dy = event.clientY - lastMousePosition.value.y;
+        const newPan = { x: props.pan.x + dx, y: props.pan.y + dy };
+        emit('update:pan', newPan);
+        lastMousePosition.value = { x: event.clientX, y: event.clientY };
+        render();
+        return;
+    }
+    // Hover logic
+    const { q, r } = getHexAtCanvasPos(event.clientX, event.clientY);
+    const hex = findHex(q, r);
+    if (hex) {
+        if (!hoveredHex.value || hoveredHex.value.coordinate.q !== q || hoveredHex.value.coordinate.r !== r) {
+            hoveredHex.value = hex;
+            render();
+        }
+    } else {
+        if (hoveredHex.value) {
+            hoveredHex.value = null;
+            render();
+        }
+    }
+}
+
+function handleMouseUp() {
+    isPanning.value = false;
+}
+
+function handleWheel(event) {
+    const scaleAmount = 0.1;
+    const scale = event.deltaY > 0 ? 1 - scaleAmount : 1 + scaleAmount;
+    // Центрируем зум относительно мыши
+    const rect = canvasRef.value.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+    const worldX = (mouseX - props.pan.x - props.width / 2) / props.zoom;
+    const worldY = (mouseY - props.pan.y - props.height / 2) / props.zoom;
+    let newZoom = props.zoom * scale;
+    newZoom = Math.max(newZoom, 0.4); // ограничение минимального зума
+    // Корректируем pan так, чтобы зум был относительно курсора
+    const newPan = {
+        x: mouseX - worldX * newZoom - props.width / 2,
+        y: mouseY - worldY * newZoom - props.height / 2
+    };
+    emit('update:pan', newPan);
+    emit('update:zoom', newZoom);
+    render();
+}
+
+function updateDimensions() {
+    emit('update:width', window.innerWidth);
+    emit('update:height', window.innerHeight);
+    render();
+}
+
+onMounted(() => {
+    window.addEventListener('resize', updateDimensions);
+    render();
+});
+
+onUnmounted(() => {
+    window.removeEventListener('resize', updateDimensions);
+});
+
+watch([() => mapStore.mapData, () => props.width, () => props.height, () => props.pan.x, () => props.pan.y, () => props.zoom], () => {
+    render();
+});
+
+// Tooltip positioning
+const tooltipStyle = computed(() => {
+    if (!hoveredHex.value) return {};
+    return {
+        position: 'fixed',
+        left: mousePos.value.x + 16 + 'px',
+        top: mousePos.value.y + 16 + 'px',
+        background: 'rgba(255,255,255,0.95)',
+        border: '1px solid #888',
+        padding: '6px 10px',
+        borderRadius: '6px',
+        pointerEvents: 'none',
+        zIndex: 10,
+        fontSize: '14px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+    };
+});
 
 // Returns an array of resource icons for a hex resource
 function getResourceIcons(resource) {
-    const iconMap = {
-        food: '🍎',
-        wood: '🌲',
-        stone: '🪨',
-        iron: '⛓️',
-        gold: '🪙',
-    };
     if (!resource) return [];
     if (typeof resource === 'string') {
         return [iconMap[resource] || '❓'];
@@ -195,24 +368,21 @@ function getResourceIcons(resource) {
     width: 100vw;
     height: 100vh;
     overflow: hidden;
-    cursor: grab;
+    position: relative;
     background-color: #f0f0f0;
+    user-select: none;
 }
-.hex-map-container:active {
+.hex-map-canvas {
+    width: 100vw;
+    height: 100vh;
+    display: block;
+    cursor: grab;
+}
+.hex-map-container:active .hex-map-canvas {
     cursor: grabbing;
 }
-.hex-map-svg {
-    width: 100%;
-    height: 100%;
-}
-polygon {
-    transition: fill 0.2s ease-in-out;
-}
-polygon:hover {
-    fill: #ffc107;
-}
-.resource-icon {
+.hex-tooltip {
     pointer-events: none;
-    user-select: none;
+    min-width: 120px;
 }
 </style> 
