@@ -314,8 +314,6 @@ function handleWheel(event) {
 }
 
 function updateDimensions() {
-    emit('update:width', window.innerWidth);
-    emit('update:height', window.innerHeight);
     render();
 }
 

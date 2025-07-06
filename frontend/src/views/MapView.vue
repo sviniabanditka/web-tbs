@@ -24,7 +24,7 @@
                 :height="height"
                 :hex-size="hexSize"
         />
-        <MiniMap
+        <MiniMapPanel
             v-if="mapStore.mapData && mapStore.mapData.length > 0"
             :map-data="mapStore.mapData"
             :pan="pan"
@@ -38,13 +38,12 @@
 </template>
 
 <script setup>
-import { ref, shallowRef } from 'vue';
-import HexMap from '@/components/HexMap.vue';
-import MapInfoPanel from '@/components/MapInfoPanel.vue';
-import MapControlsPanel from '@/components/MapControlsPanel.vue';
+import { ref } from 'vue';
 import { useMapStore } from '@/stores/map';
-import { capitalize } from 'vue';
-import MiniMap from '@/components/MiniMap.vue';
+import HexMap from '@/components/map/HexMap.vue';
+import MapInfoPanel from '@/components/map/MapInfoPanel.vue';
+import MapControlsPanel from '@/components/map/MapControlsPanel.vue';
+import MiniMapPanel from '@/components/map/MiniMapPanel.vue';
 
 const mapStore = useMapStore();
 const seed = ref(randomString());
@@ -69,7 +68,7 @@ const biomes = ref({
     water: 0.2,
 });
 
-// Для управления pan/zoom из MapView
+// For managing pan/zoom from MapView
 const pan = ref({ x: 0, y: 0 });
 const zoom = ref(1);
 const width = ref(window.innerWidth);
@@ -101,10 +100,10 @@ function loadMap() {
     );
 }
 
-// Функция для центрирования карты по клику на миникарте
+// Function to center the map on a click on the minimap
 function handleMiniMapCenter({ worldX, worldY }) {
-    // worldX, worldY — мировые координаты точки, куда кликнули на миникарте
-    // Нужно выставить pan так, чтобы эта точка оказалась в центре экрана
+    // worldX, worldY — world coordinates of the point clicked on the minimap
+    // Need to set pan so that this point is at the center of the screen
     const viewWidth = width.value / zoom.value;
     const viewHeight = height.value / zoom.value;
     pan.value = {
