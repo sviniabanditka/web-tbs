@@ -16,6 +16,7 @@ export default defineConfig({
     },
   },
   server: {
+    allowedHosts: ["tactorium.app"],
     host: '0.0.0.0',
     port: 5173,
     watch: {
