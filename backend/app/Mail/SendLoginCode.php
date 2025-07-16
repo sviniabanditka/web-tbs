@@ -22,7 +22,7 @@ class SendLoginCode extends Mailable
 
     public function build()
     {
-        return $this->subject('Your login code')
+        return $this->subject('[TACTORIUM] Login code')
                     ->view('emails.login-code');
     }
 }
