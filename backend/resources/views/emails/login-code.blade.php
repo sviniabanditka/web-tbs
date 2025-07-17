@@ -31,6 +31,9 @@
       color: #000000;
       text-decoration: none;
     }
+    .info, .info a {
+        color: #000000;
+    }
     .title {
       font-size: 20px;
       margin-top: 16px;
@@ -94,7 +97,7 @@
     </div>
 
     <div class="footer">
-      <p><a href="https://tactorium.app">Tactorium</a> - Turn-based Strategy Game</p>
+      <p class="info"><a href="https://tactorium.app">Tactorium</a> - Turn-based Strategy Game</p>
       <div class="social">
         <a href="https://github.com/sviniabanditka/web-tbs">GitHub</a>
         <a href="https://threads.com/cringeneer_dev">Threads</a>
