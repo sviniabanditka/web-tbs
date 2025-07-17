@@ -24,10 +24,12 @@
       text-align: center;
       padding-bottom: 24px;
     }
-    .logo {
+    .logo, .logo a {
       font-size: 24px;
       font-weight: bold;
       letter-spacing: 1px;
+      color: #000000;
+      text-decoration: none;
     }
     .title {
       font-size: 20px;
@@ -98,7 +100,7 @@
         <a href="https://threads.com/cringeneer_dev">Threads</a>
         <a href="mailto:support@tactorium.app">Email</a>
       </div>
-      <p>© 2025 <a href="https://tactorium.app">Tactorium</a>.</p>
+      <p>© 2025 Tactorium.</p>
     </div>
   </div>
 </body>
