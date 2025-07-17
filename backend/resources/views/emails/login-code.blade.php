@@ -81,7 +81,7 @@
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">Tactorium</div>
+      <div class="logo"><a href="https://tactorium.app">Tactorium</a></div>
       <div class="title">Login code</div>
     </div>
 
@@ -92,15 +92,13 @@
     </div>
 
     <div class="footer">
-      <p>Tactorium - Turn-based Strategy Game</p>
+      <p><a href="https://tactorium.app">Tactorium</a> - Turn-based Strategy Game</p>
       <div class="social">
-        <a href="https://discord.com/">Discord</a>
         <a href="https://github.com/sviniabanditka/web-tbs">GitHub</a>
         <a href="https://threads.com/cringeneer_dev">Threads</a>
         <a href="mailto:support@tactorium.app">Email</a>
-        <a href="https://tactorium.app">App</a>
       </div>
-      <p>© 2025 Tactorium.</p>
+      <p>© 2025 <a href="https://tactorium.app">Tactorium</a>.</p>
     </div>
   </div>
 </body>
