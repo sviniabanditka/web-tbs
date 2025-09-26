@@ -20,4 +20,9 @@ class CommonModule extends Module
     {
         return app_path('Modules/Common');
     }
+
+    public static function getRoutesPrefix(): string
+    {
+        return '';
+    }
 }

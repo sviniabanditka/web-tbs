@@ -45,6 +45,22 @@ abstract class Module
     }
 
     /**
+     * Get module routes path
+     */
+    public static function getRoutesPath(): string
+    {
+        return static::getPath() . '/Routes';
+    }
+
+    /**
+     * Get module routes prefix
+     */
+    public static function getRoutesPrefix(): string
+    {
+        return 'api';
+    }
+
+    /**
      * Get module config path
      */
     public static function getConfigPath(): string

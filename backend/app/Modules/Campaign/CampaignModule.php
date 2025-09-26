@@ -20,4 +20,9 @@ class CampaignModule extends Module
     {
         return app_path('Modules/Campaign');
     }
+
+    public static function getRoutesPrefix(): string
+    {
+        return 'api/campaigns';
+    }
 }

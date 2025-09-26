@@ -37,14 +37,14 @@ class ModuleServiceProvider extends ServiceProvider
     {
         foreach (ModuleManager::getModules() as $moduleClass) {
             $module = new $moduleClass();
-            $modulePath = $module->getPath();
-            $routesPath = $modulePath . '/Routes';
+            $routesPath = $module->getRoutesPath();
+            $prefix = $module->getRoutesPrefix();
 
             if (is_dir($routesPath)) {
                 $routeFiles = glob($routesPath . '/*.php');
 
                 foreach ($routeFiles as $routeFile) {
-                    Route::prefix('api')->group(function () use ($routeFile) {
+                    Route::prefix($prefix)->group(function () use ($routeFile) {
                         require $routeFile;
                     });
                 }
