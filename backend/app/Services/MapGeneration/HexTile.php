@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\MapGen;
+namespace App\Services\MapGeneration;
 /**
  * Represents a single tile of a hexagonal map
  */

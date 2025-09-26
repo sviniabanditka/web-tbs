@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\MapGen;
+namespace App\Services\MapGeneration;
 /**
  * Checks the connectivity of the map and builds bridges between isolated areas
  */

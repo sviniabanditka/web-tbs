@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use App\Services\MapGen\MapGenerator;
-use App\Services\MapGen\StatisticGenerator;
+use App\Services\MapGeneration\MapGenerator;
+use App\Services\MapGeneration\StatisticGenerator;
 
 class MapGenerationController extends Controller
 {

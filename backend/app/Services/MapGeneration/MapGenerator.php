@@ -1,5 +1,5 @@
 <?php
-namespace App\Services\MapGen;
+namespace App\Services\MapGeneration;
 /**
  * Main orchestrator for hexagonal map generation
  */

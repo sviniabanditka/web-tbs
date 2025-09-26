@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\MapGen;
+namespace App\Services\MapGeneration;
 /**
  * Represents the axial coordinates of a hexagon
  */
