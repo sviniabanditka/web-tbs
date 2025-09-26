@@ -28,8 +28,17 @@
     "autoload": {
         "psr-4": {
             "App\\": "app/",
-            "Database\\Factories\\": "database/factories/",
-            "Database\\Seeders\\": "database/seeders/"
+            "App\\Modules\\Common\\": "app/Modules/Common/",
+            "App\\Modules\\Auth\\": "app/Modules/Auth/",
+            "App\\Modules\\Campaign\\": "app/Modules/Campaign/",
+            "App\\Modules\\GameEngine\\": "app/Modules/GameEngine/",
+            "App\\Modules\\MapGeneration\\": "app/Modules/MapGeneration/",
+            "App\\Modules\\Combat\\": "app/Modules/Combat/",
+            "App\\Modules\\Chat\\": "app/Modules/Chat/",
+            "App\\Modules\\Notifications\\": "app/Modules/Notifications/",
+            "App\\Modules\\Analytics\\": "app/Modules/Analytics/",
+            "Database\\Factories\\": "app/Modules/Common/Factories/",
+            "Database\\Seeders\\": "app/Modules/Common/Seeders/"
         }
     },
     "autoload-dev": {
