@@ -21,9 +21,6 @@ class AuthModule extends Module
         return app_path('Modules/Auth');
     }
 
-    /**
-     * Get module views path
-     */
     public static function getViewsPath(): string
     {
         return static::getPath() . '/Views';

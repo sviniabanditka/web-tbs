@@ -14,9 +14,6 @@ use App\Modules\Common\CommonModule;
 
 class ModuleManager
 {
-    /**
-     * Get all registered modules
-     */
     public static function getModules(): array
     {
         return [
@@ -32,9 +29,6 @@ class ModuleManager
         ];
     }
 
-    /**
-     * Get module by name
-     */
     public static function getModule(string $name): ?Module
     {
         foreach (static::getModules() as $moduleClass) {
@@ -46,9 +40,6 @@ class ModuleManager
         return null;
     }
 
-    /**
-     * Get all module namespaces for autoloading
-     */
     public static function getNamespaces(): array
     {
         $namespaces = [];

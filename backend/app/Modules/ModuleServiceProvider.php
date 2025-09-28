@@ -7,32 +7,13 @@ use Illuminate\Support\Facades\Route;
 
 class ModuleServiceProvider extends ServiceProvider
 {
-    /**
-     * Register services.
-     */
-    public function register(): void
-    {
-        // Module namespaces are already registered in composer.json
-    }
-
-    /**
-     * Bootstrap services.
-     */
     public function boot(): void
     {
-        // Load module routes
         $this->loadModuleRoutes();
-
-        // Load module migrations
         $this->loadModuleMigrations();
-
-        // Load module views
         $this->loadModuleViews();
     }
 
-    /**
-     * Load routes from all modules
-     */
     protected function loadModuleRoutes(): void
     {
         foreach (ModuleManager::getModules() as $moduleClass) {
@@ -52,9 +33,6 @@ class ModuleServiceProvider extends ServiceProvider
         }
     }
 
-    /**
-     * Load migrations from all modules
-     */
     protected function loadModuleMigrations(): void
     {
         foreach (ModuleManager::getModules() as $moduleClass) {
@@ -67,9 +45,6 @@ class ModuleServiceProvider extends ServiceProvider
         }
     }
 
-    /**
-     * Load views from all modules
-     */
     protected function loadModuleViews(): void
     {
         foreach (ModuleManager::getModules() as $moduleClass) {
